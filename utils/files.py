@@ -4,7 +4,9 @@ from typing import Union
 
 
 def get_files(path: Union[str, Path], extension='.wav'):
+    print('Reading files..')
     if isinstance(path, str): path = Path(path).expanduser().resolve()
+    list(path.rglob(f'*{extension}'))
     return list(path.rglob(f'*{extension}'))
 
 
