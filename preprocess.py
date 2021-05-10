@@ -76,13 +76,10 @@ path = args.path
 if __name__ == '__main__':
     if isinstance(path, str): path = Path(path).expanduser().resolve()
     all_files = list(path.rglob('*'))
-    print(len(all_files), str(all_files[-1])[-3:])
     text_files = [all_files[i] for i in range(len(all_files)) if str(all_files[i])[-3:]=='txt']
     csv_files = [all_files[i] for i in range(len(all_files)) if str(all_files[i])[-3:]=='csv']
     wav_files = [all_files[i] for i in range(len(all_files)) if str(all_files[i])[-3:]=='wav']
     other_files = [all_files[i] for i in range(len(all_files)) if str(all_files[i])[-3:] not in ['wav', 'csv', 'txt'] and str(all_files[i])[-4]=='.']
-    print(len(text_files), len(csv_files), len(wav_files), len(other_files))
-    print(csv_files)
     wav_files = get_files(path, extension)
     wav_ids = {w.stem for w in wav_files}
     paths = Paths(hp.data_path, hp.voc_model_id, hp.tts_model_id)

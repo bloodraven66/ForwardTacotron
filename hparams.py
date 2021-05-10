@@ -7,8 +7,8 @@ data_path = 'data/'
 
 # model ids are separate - that way you can use a new tts with an old wavernn and vice versa
 # NB: expect undefined behaviour if models were trained on different DSP settings
-voc_model_id = 'ljspeech_raw'
-tts_model_id = 'ljspeech_tts'
+voc_model_id = 'ljspeech_raw_secondrun'
+tts_model_id = 'ljspeech_tts_secondrun'
 
 # set this to True if you are only interested in WaveRNN
 ignore_tts = False
@@ -30,7 +30,7 @@ mu_law = True                       # Recommended to suppress noise if using raw
 peak_norm = False                   # Normalise to the peak of each wav file
 trim_start_end_silence = True      # Whether to trim leading and trailing silence
 trim_silence_top_db = 60            # Threshold in decibels below reference to consider silence for for trimming
-                                    # start and end silences with librosa (no trimming if really high)
+bs = 2                        # start and end silences with librosa (no trimming if really high)
 pitch_max_freq = 600                # Maximum value for pitch frequency to remove outliers (Common pitch range is
                                     # about 60-300)
 
@@ -61,8 +61,8 @@ voc_res_blocks = 10
 
 # Training
 
-voc_schedule = [(1e-4,  300_000,  32),        # progressive training schedule
-                (2e-5,  2_000_000,  32)]      # (lr, step, batch_size)
+voc_schedule = [(1e-4,  300_000,  bs),        # progressive training schedule
+                (2e-5,  2_000_000,  bs)]      # (lr, step, batch_size)
 
 voc_checkpoint_every = 25_000
 voc_gen_samples_every = 5000        # how often to generate samples for cherry-picking models
@@ -102,11 +102,11 @@ tts_stop_threshold = -11           # Value below which audio generation ends.
 
 # Training
 
-tts_schedule = [(10,  1e-3,  10_000,  32),   # progressive training schedule
-                (5,  1e-4, 20_000,  16),   # (r, lr, step, batch_size)
-                (2,  1e-4, 30_000,  8),
-                (1,  1e-4, 50_000,  8)]
-
+# tts_schedule = [(1,  1e-4, 1_000,  bs)]
+tts_schedule = [(10,  1e-3,  10_000,  bs),   # progressive training schedule
+                (5,  1e-4, 20_000,  bs),   # (r, lr, step, batch_size)
+                (2,  1e-4, 30_000,  bs),
+                (1,  1e-4, 50_000,  bs)]
 tts_max_mel_len = 1250              # if you have a couple of extremely long spectrograms you might want to use this
 tts_clip_grad_norm = 1.0            # clips the gradient norm to prevent explosion - set to None if not needed
 tts_checkpoint_every = 10_000       # checkpoints the model every X steps
@@ -142,9 +142,9 @@ forward_dropout = 0.1
 
 # Training
 
-forward_schedule = [(1e-4, 10_000,  32),    # progressive training schedule
-                    (1e-4, 300_000,  32),   # (lr, step, batch_size)
-                    (2e-5, 600_000,  32)]   # (lr, step, batch_size)
+forward_schedule = [(1e-4, 10_000,  bs),    # progressive training schedule
+                    (1e-4, 300_000,  bs),   # (lr, step, batch_size)
+                    (2e-5, 600_000,  bs)]   # (lr, step, batch_size)
 
 forward_max_mel_len = 1250              # if you have a couple of extremely long spectrograms you might want to use this
 forward_clip_grad_norm = 1.0            # clips the gradient norm to prevent explosion - set to None if not needed
@@ -152,10 +152,11 @@ forward_checkpoint_every = 10_000        # checkpoints the model every X steps
 forward_plot_every = 1000
 
 forward_filter_attention = True               # whether to filter data with bad attention scores
-forward_min_attention_sharpness = 0.5         # filter data with bad attention sharpness score, if 0 then no filter
-forward_min_attention_alignment = 0.95        # filter data with bad attention alignment score, if 0 then no filter
-
+# forward_min_attention_sharpness = 0.5         # filter data with bad attention sharpness score, if 0 then no filter
+forward_min_attention_sharpness = 0
+# forward_min_attention_alignment = 0.95        # filter data with bad attention alignment score, if 0 then no filter
+forward_min_attention_alignment = 0.6
 
 
 # ------------------------------------------------------------------------------------------------------------------#
-
+model_step = 0

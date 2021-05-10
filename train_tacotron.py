@@ -39,10 +39,14 @@ def extract_pitch(save_path: Path) -> Tuple[float, float]:
     train_data = unpickle_binary('data/train_dataset.pkl')
     val_data = unpickle_binary('data/val_dataset.pkl')
     all_data = filter_max_len(train_data + val_data)
+    wrong_align = []
     phoneme_pitches = []
     for prog_idx, (item_id, mel_len) in enumerate(all_data, 1):
         dur = np.load(paths.alg / f'{item_id}.npy')
-        assert np.sum(dur) == mel_len
+        # assert np.sum(dur) == mel_len
+        if np.sum(dur) != mel_len:
+            wrong_align.append(item_id)
+            print(f'Wrong length, skipped. Total:{len(wrong_align)}')
         pitch = np.load(paths.raw_pitch / f'{item_id}.npy')
         durs_cum = np.cumsum(np.pad(dur, (1, 0)))
         pitch_char = np.zeros((dur.shape[0],), dtype=np.float)
@@ -74,7 +78,7 @@ def create_gta_features(model: Tacotron,
     for i, (x, mels, ids, x_lens, mel_lens) in enumerate(dataset, 1):
         x, mels = x.to(device), mels.to(device)
         with torch.no_grad():
-            _, gta, _ = model(x, mels)
+            _, gta, _, _ = model(x, mels)
         gta = gta.cpu().numpy()
         for j, item_id in enumerate(ids):
             mel = gta[j][:, :mel_lens[j]]
@@ -107,7 +111,7 @@ def create_align_features(model: Tacotron,
     for i, (x, mels, ids, x_lens, mel_lens) in enumerate(dataset, 1):
         x, mels = x.to(device), mels.to(device)
         with torch.no_grad():
-            _, _, att_batch = model(x, mels)
+            _, _, att_batch, _ = model(x, mels)
         align_score, sharp_score = attention_score(att_batch, mel_lens, r=1)
         att_batch = np_now(att_batch)
         seq, att, mel_len, item_id = x[0], att_batch[0], mel_lens[0], ids[0]
@@ -121,8 +125,7 @@ def create_align_features(model: Tacotron,
         msg = f'{bar} {i}/{iters} Batches '
         stream(msg)
     pickle_binary(att_score_dict, paths.data / 'att_score_dict.pkl')
-    print('Extracting Pitch Values...')
-    extract_pitch(save_path_pitch)
+
 
 
 if __name__ == '__main__':
@@ -170,12 +173,13 @@ if __name__ == '__main__':
                      num_highways=hp.tts_num_highways,
                      dropout=hp.tts_dropout,
                      stop_threshold=hp.tts_stop_threshold).to(device)
-
+    print('Device:',device)
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(f'Num Params: {params}')
     optimizer = optim.Adam(model.parameters())
     restore_checkpoint('tts', paths, model, optimizer, create_if_missing=True, device=device)
+    model = model
 
     if args.force_gta:
         print('Creating Ground Truth Aligned Dataset...\n')
@@ -186,6 +190,7 @@ if __name__ == '__main__':
         print('Creating Attention Alignments and Pitch Values...')
         train_set, val_set = get_tts_datasets(paths.data, 1, model.r)
         create_align_features(model, train_set, val_set, paths.alg, paths.phon_pitch)
+        extract_pitch(paths.phon_pitch)
         print('\n\nYou can now train ForwardTacotron - use python train_forward.py\n')
     else:
         trainer = TacoTrainer(paths)
@@ -193,13 +198,6 @@ if __name__ == '__main__':
         print('Creating Attention Alignments and Pitch Values...')
         train_set, val_set = get_tts_datasets(paths.data, 1, model.r)
         create_align_features(model, train_set, val_set, paths.alg, paths.phon_pitch)
+        print('Extracting Pitch Values...')
+        extract_pitch(paths.phon_pitch)
         print('\n\nYou can now train ForwardTacotron - use python train_forward.py\n')
-
-
-
-
-
-
-
-
-
